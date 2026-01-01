@@ -14,9 +14,7 @@ RUN npm ci --only=production
 
 # Copy application source
 COPY src ./src
-COPY config.json ./
 COPY auth-mcp ./
-COPY .env* ./
 
 # Make the launcher executable
 RUN chmod +x auth-mcp
