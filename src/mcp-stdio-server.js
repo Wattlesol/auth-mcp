@@ -16,8 +16,9 @@ const SwaggerToolsAnalyzer = require('./swagger-tools-analyzer');
 // Initialize auth API client
 const authClient = new AuthAPIClient();
 
-// Token storage file path (in temp directory for persistence across calls)
-const TOKEN_FILE = path.join(os.tmpdir(), '.auth-mcp-token.json');
+// Token storage file path (use home directory for persistence across calls)
+// Using home directory instead of os.tmpdir() for consistency across different temp paths
+const TOKEN_FILE = path.join(os.homedir(), '.auth-mcp-token.json');
 
 class StdioMCPServer {
   constructor() {
@@ -61,7 +62,9 @@ class StdioMCPServer {
   // Load persisted token from file
   loadPersistedToken() {
     try {
+      this.logError(`[Token] Checking for persisted token at: ${TOKEN_FILE}`);
       if (fs.existsSync(TOKEN_FILE)) {
+        this.logError(`[Token] Token file found, loading...`);
         const data = fs.readFileSync(TOKEN_FILE, 'utf8');
         const tokenData = JSON.parse(data);
 
@@ -81,6 +84,8 @@ class StdioMCPServer {
           const expiresIn = this.tokenExpiry ? Math.floor((this.tokenExpiry - Date.now()) / 1000) : 'unknown';
           this.logError(`[Token] Loaded persisted token (expires in ${expiresIn}s)`);
         }
+      } else {
+        this.logError(`[Token] No persisted token file found`);
       }
     } catch (error) {
       this.logError(`[Token] Failed to load persisted token: ${error.message}`);
@@ -117,6 +122,9 @@ class StdioMCPServer {
 
   // Store access token from authentication response
   storeAccessToken(response) {
+    // Log the response structure for debugging
+    this.logError(`[Token] Attempting to extract token from response keys: ${Object.keys(response).join(', ')}`);
+
     // Try to extract token from various possible response formats
     const token = response.accessToken ||
                   response.access_token ||
@@ -127,7 +135,7 @@ class StdioMCPServer {
 
     if (token) {
       this.accessToken = token;
-      this.logError(`[Token] Access token stored successfully`);
+      this.logError(`[Token] Access token stored successfully (length: ${token.length})`);
 
       // Set token in API client
       authClient.setAuthToken(token);
@@ -145,6 +153,7 @@ class StdioMCPServer {
       return true;
     }
 
+    this.logError(`[Token] Warning: No token found in response. Response structure: ${JSON.stringify(response).substring(0, 200)}`);
     return false;
   }
 
@@ -277,6 +286,12 @@ class StdioMCPServer {
       }
 
       const { path, method } = tool.metadata;
+
+      // Log the request for debugging
+      this.logError(`[Request] Tool: ${name}, Method: ${method}, Path: ${path}`);
+      if (name.includes('signin')) {
+        this.logError(`[Request] Signin attempt with email: ${args.email || 'N/A'}`);
+      }
 
       // Check if this is a signin/authentication endpoint
       const isAuthEndpoint = name.includes('signin') || name.includes('login') || path.includes('/auth/signin');
