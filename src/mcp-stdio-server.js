@@ -17,7 +17,9 @@ class StdioMCPServer {
   constructor() {
     this.tools = [];
     this.initialized = false;
-    
+    this.accessToken = null; // Store access token for authenticated requests
+    this.tokenExpiry = null; // Track token expiration
+
     // Create readline interface
     this.rl = readline.createInterface({
       input: process.stdin,
@@ -45,6 +47,66 @@ class StdioMCPServer {
       this.tools = this.getDefaultTools();
       this.initialized = true;
     }
+  }
+
+  // Store access token from authentication response
+  storeAccessToken(response) {
+    // Try to extract token from various possible response formats
+    const token = response.accessToken ||
+                  response.access_token ||
+                  response.token ||
+                  response.data?.accessToken ||
+                  response.data?.access_token ||
+                  response.data?.token;
+
+    if (token) {
+      this.accessToken = token;
+      this.logError(`[Token] Access token stored successfully`);
+
+      // Set token in API client
+      authClient.setAuthToken(token);
+
+      // Extract expiry if available
+      const expiresIn = response.expiresIn || response.expires_in || response.data?.expiresIn;
+      if (expiresIn) {
+        this.tokenExpiry = Date.now() + (expiresIn * 1000);
+        this.logError(`[Token] Token will expire in ${expiresIn} seconds`);
+      }
+
+      return true;
+    }
+
+    return false;
+  }
+
+  // Clear stored access token
+  clearAccessToken() {
+    this.accessToken = null;
+    this.tokenExpiry = null;
+    authClient.removeAuthToken();
+    this.logError(`[Token] Access token cleared`);
+  }
+
+  // Check if token is expired
+  isTokenExpired() {
+    if (!this.accessToken) return true;
+    if (!this.tokenExpiry) return false; // No expiry info, assume valid
+    return Date.now() >= this.tokenExpiry;
+  }
+
+  // Get current token status
+  getTokenStatus() {
+    if (!this.accessToken) {
+      return { authenticated: false, message: 'No token stored' };
+    }
+    if (this.isTokenExpired()) {
+      return { authenticated: false, message: 'Token expired' };
+    }
+    return {
+      authenticated: true,
+      message: 'Token valid',
+      expiresIn: this.tokenExpiry ? Math.floor((this.tokenExpiry - Date.now()) / 1000) : null
+    };
   }
 
   getDefaultTools() {
@@ -146,8 +208,39 @@ class StdioMCPServer {
 
       const { path, method } = tool.metadata;
 
+      // Check if this is a signin/authentication endpoint
+      const isAuthEndpoint = name.includes('signin') || name.includes('login') || path.includes('/auth/signin');
+
+      // Check if this is a signout endpoint
+      const isSignoutEndpoint = name.includes('signout') || name.includes('logout') || path.includes('/auth/signout');
+
+      // For non-auth endpoints, check if we have a valid token
+      if (!isAuthEndpoint && !isSignoutEndpoint) {
+        const tokenStatus = this.getTokenStatus();
+        if (!tokenStatus.authenticated) {
+          throw new Error(`Authentication required: ${tokenStatus.message}. Please sign in first using post_api_auth_signin tool.`);
+        }
+        this.logError(`[Token] Using stored token for ${name} (expires in ${tokenStatus.expiresIn}s)`);
+      }
+
       // Make the API call using the swagger client
       const result = await authClient.makeApiCall(method, path, args);
+
+      // If this was a signin call, store the access token
+      if (isAuthEndpoint && result) {
+        const tokenStored = this.storeAccessToken(result);
+        if (tokenStored) {
+          this.logError(`[Auth] Successfully authenticated and stored token`);
+        } else {
+          this.logError(`[Auth] Warning: Authentication succeeded but no token found in response`);
+        }
+      }
+
+      // If this was a signout call, clear the token
+      if (isSignoutEndpoint) {
+        this.clearAccessToken();
+        this.logError(`[Auth] Successfully signed out and cleared token`);
+      }
 
       return {
         jsonrpc: '2.0',
@@ -162,6 +255,12 @@ class StdioMCPServer {
         }
       };
     } catch (error) {
+      // If we get a 401 error, clear the stored token
+      if (error.message.includes('401')) {
+        this.logError(`[Token] Received 401 error, clearing stored token`);
+        this.clearAccessToken();
+      }
+
       return {
         jsonrpc: '2.0',
         id: request.id,

@@ -100,11 +100,8 @@ class AuthAPIClient {
   // Generic API call method for dynamic tool execution
   async makeApiCall(method, path, params = {}) {
     try {
-      // Extract token from params if present
-      const token = params.token || params.authorization;
-      if (token) {
-        this.setAuthToken(token);
-      }
+      // Note: Token is now managed by the MCP server and set via setAuthToken()
+      // We don't need to extract it from params anymore since it's already in headers
 
       let response;
       const httpMethod = method.toLowerCase();
@@ -149,10 +146,6 @@ class AuthAPIClient {
       return response.data;
     } catch (error) {
       throw this.handleError(error);
-    } finally {
-      if (params.token || params.authorization) {
-        this.removeAuthToken();
-      }
     }
   }
 
