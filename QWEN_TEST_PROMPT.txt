@@ -1,0 +1,18 @@
+IMPORTANT: First, restart the MCP connection in Qwen to load the latest tools!
+
+Then use this prompt:
+
+---
+
+Please test the authentication system using these exact tool names:
+
+Step 1: Sign in using the tool named "post_api_auth_signin" with these parameters:
+- email: sxain123@gmail.com
+- password: Muh@mm@d9091
+
+Step 2: After successful signin, use the tool named "get_api_auth_me" with no parameters to get my user profile.
+
+The token from step 1 should automatically persist and be used in step 2.
+
+Show me the results from both steps.
+
