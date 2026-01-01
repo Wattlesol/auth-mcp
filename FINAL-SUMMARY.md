@@ -1,9 +1,9 @@
 # 🎉 Auth MCP Server - Complete Implementation Summary
 
-## ✅ Project Status: FULLY FUNCTIONAL
+## ✅ Project Status: FULLY FUNCTIONAL WITH TOKEN MANAGEMENT
 
-**Repository**: https://github.com/Wattlesol/auth-mcp  
-**Status**: Production Ready  
+**Repository**: https://github.com/Wattlesol/auth-mcp
+**Status**: Production Ready with Automatic Token Management
 **Last Updated**: 2026-01-01
 
 ---
@@ -12,10 +12,12 @@
 
 A **fast, low-latency MCP (Model Context Protocol) server** that:
 - Dynamically loads 18 authentication tools from Swagger/OpenAPI specifications
+- **Automatically manages authentication tokens** - sign in once, use everywhere
 - Works with multiple AI agents: LM Studio, Claude Desktop, Qwen Coding Agent
 - Makes actual HTTP requests to your backend authentication API
 - Supports stdio-based communication for < 10ms latency
 - Includes Docker support for easy deployment
+- **Smart token lifecycle management** - stores, validates, and clears tokens automatically
 
 ---
 
@@ -54,7 +56,25 @@ A **fast, low-latency MCP (Model Context Protocol) server** that:
 
 **Result**: Tools now make actual HTTP requests to backend API!
 
-### 4. ✅ Docker Build Failing
+### 4. ✅ Token Management Not Working
+**Problem**: After signin, subsequent API calls failed with 401 errors
+**Root Cause**: Server wasn't storing or reusing authentication tokens
+**Solution**: Implemented automatic token management system
+**Files Modified**:
+- `src/mcp-stdio-server.js` - Added token storage, validation, and lifecycle management
+- `src/api-client.js` - Simplified to use persistent token from headers
+
+**Features Added**:
+- Automatic token extraction from signin responses
+- Token storage in memory for session duration
+- Automatic token inclusion in all subsequent API calls
+- Token expiration tracking and validation
+- Automatic token clearing on signout or 401 errors
+- Clear error messages when authentication is required
+
+**Result**: Sign in once, use all protected endpoints automatically!
+
+### 5. ✅ Docker Build Failing
 **Problem**: Docker build failed with "config.json not found"  
 **Root Cause**: Dockerfile referenced non-existent files  
 **Solution**: Removed references to config.json and .env files  
@@ -172,6 +192,8 @@ docker-compose -f docker-compose-mcp.yml up -d
 1. **Initial commit**: Base MCP server implementation
 2. **Fix: Enable dynamic API routing**: Made tools actually work
 3. **Fix: Update Dockerfile**: Fixed Docker build issues
+4. **docs: Add comprehensive final summary**: Documented all fixes and features
+5. **feat: Add automatic token management**: Implemented session-based authentication
 
 ---
 
@@ -189,6 +211,9 @@ docker-compose -f docker-compose-mcp.yml up -d
 - ✅ 18 tools loaded from Swagger API
 - ✅ All tools have unique names
 - ✅ Tools execute and make real API calls
+- ✅ **Automatic token management** - sign in once, use everywhere
+- ✅ **Token lifecycle management** - stores, validates, expires, clears
+- ✅ **Smart error handling** - clear messages when auth is needed
 - ✅ Works with LM Studio, Claude Desktop, Qwen
 - ✅ Docker container runs successfully
 - ✅ < 10ms latency for tool calls
@@ -197,5 +222,38 @@ docker-compose -f docker-compose-mcp.yml up -d
 
 ---
 
-**Status**: Ready for production use! 🚀
+## 🔐 Token Management Features
+
+### Automatic Token Storage
+- Extracts tokens from signin responses (supports multiple formats)
+- Stores in memory for session duration
+- Sets in API client headers automatically
+
+### Automatic Token Usage
+- All protected endpoints automatically include token
+- No need to manually pass tokens between requests
+- Transparent to AI agents
+
+### Token Validation
+- Checks if token exists before protected API calls
+- Validates token expiration (if provided by API)
+- Returns clear error messages when auth is needed
+
+### Token Lifecycle
+- **On Signin**: Stores token automatically
+- **On API Call**: Includes token in Authorization header
+- **On Signout**: Clears token automatically
+- **On 401 Error**: Clears invalid token automatically
+- **On Expiration**: Prompts user to sign in again
+
+### Debug Mode
+Enable with `MCP_DEBUG=true` to see:
+- `[Token] Access token stored successfully`
+- `[Token] Using stored token for <tool_name> (expires in Xs)`
+- `[Token] Received 401 error, clearing stored token`
+- `[Auth] Successfully authenticated and stored token`
+
+---
+
+**Status**: Ready for production use with automatic authentication! 🚀
 
