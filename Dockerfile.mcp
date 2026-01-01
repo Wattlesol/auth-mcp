@@ -1,0 +1,31 @@
+# Dockerfile for Auth MCP Server (STDIO mode)
+# Optimized for low-latency, real-time AI conversations
+
+FROM node:18-alpine
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies
+RUN npm ci --only=production
+
+# Copy application source
+COPY src ./src
+COPY config.json ./
+COPY auth-mcp ./
+COPY .env* ./
+
+# Make the launcher executable
+RUN chmod +x auth-mcp
+
+# Set environment variables
+ENV NODE_ENV=production
+ENV AUTH_API_BASE_URL=https://your-auth-api.example.com
+ENV SWAGGER_URL=https://your-auth-api.example.com/api-json
+
+# Entry point for MCP stdio server
+ENTRYPOINT ["node", "auth-mcp"]
+

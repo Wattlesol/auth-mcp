@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "auth-mcp": {
+      "command": "node",
+      "args": [
+        "/path/to/your/auth-mcp"
+      ],
+      "env": {
+        "AUTH_API_BASE_URL": "https://your-auth-api.example.com",
+        "SWAGGER_URL": "https://your-auth-api.example.com/api-json"
+      }
+    }
+  }
+}
+

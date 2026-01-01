@@ -1,0 +1,122 @@
+═══════════════════════════════════════════════════════════════════
+  AUTH MCP SERVER - COPY & PASTE CONFIGURATION
+═══════════════════════════════════════════════════════════════════
+
+📋 FOR LM STUDIO
+────────────────────────────────────────────────────────────────────
+
+Copy this entire JSON block:
+
+{
+  "mcpServers": {
+    "auth-mcp": {
+      "command": "node",
+      "args": [
+        "/Users/xain/Desktop/mcp/auth-mcp"
+      ],
+      "env": {
+        "AUTH_API_BASE_URL": "https://backstage.orcayo.wattlesol.digital",
+        "SWAGGER_URL": "https://backstage.orcayo.wattlesol.digital/api-json"
+      }
+    }
+  }
+}
+
+Where to paste:
+• Open LM Studio
+• Settings → MCP Servers → Add Server
+• Paste the JSON above
+• Save and restart LM Studio
+
+────────────────────────────────────────────────────────────────────
+
+📋 FOR CLAUDE DESKTOP
+────────────────────────────────────────────────────────────────────
+
+Copy this entire JSON block:
+
+{
+  "mcpServers": {
+    "auth-mcp": {
+      "command": "node",
+      "args": [
+        "/Users/xain/Desktop/mcp/auth-mcp"
+      ],
+      "env": {
+        "AUTH_API_BASE_URL": "https://backstage.orcayo.wattlesol.digital",
+        "SWAGGER_URL": "https://backstage.orcayo.wattlesol.digital/api-json"
+      }
+    }
+  }
+}
+
+Where to paste:
+• macOS: ~/Library/Application Support/Claude/claude_desktop_config.json
+• Windows: %APPDATA%\Claude\claude_desktop_config.json
+• Linux: ~/.config/Claude/claude_desktop_config.json
+
+Open the file, add the JSON above to the "mcpServers" section, save, and restart Claude Desktop.
+
+────────────────────────────────────────────────────────────────────
+
+📋 FOR DOCKER DEPLOYMENT
+────────────────────────────────────────────────────────────────────
+
+Copy this entire JSON block:
+
+{
+  "mcpServers": {
+    "auth-mcp": {
+      "command": "docker",
+      "args": [
+        "run",
+        "--rm",
+        "-i",
+        "--env-file",
+        "/Users/xain/Desktop/mcp/.env",
+        "auth-mcp-stdio"
+      ]
+    }
+  }
+}
+
+Before using:
+1. Build the Docker image:
+   docker build -f Dockerfile.mcp -t auth-mcp-stdio .
+
+2. Use the configuration above in your MCP client
+
+────────────────────────────────────────────────────────────────────
+
+🧪 QUICK TEST COMMANDS
+────────────────────────────────────────────────────────────────────
+
+# Test the server is working
+./test-mcp-stdio.sh
+
+# Or manually test
+echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"1.0.0"}}}' | node auth-mcp
+
+────────────────────────────────────────────────────────────────────
+
+✅ CHECKLIST BEFORE USING
+────────────────────────────────────────────────────────────────────
+
+□ Dependencies installed (npm install)
+□ auth-mcp file is executable (chmod +x auth-mcp)
+□ .env file exists with correct API URLs
+□ Path in config matches your installation location
+□ Server tested successfully (./test-mcp-stdio.sh)
+
+────────────────────────────────────────────────────────────────────
+
+📚 NEED HELP?
+────────────────────────────────────────────────────────────────────
+
+See these files:
+• QUICK-SETUP.md - 3-step setup guide
+• CONFIGURATION-GUIDE.md - Detailed configuration
+• SUMMARY.md - Complete project overview
+
+═══════════════════════════════════════════════════════════════════
+

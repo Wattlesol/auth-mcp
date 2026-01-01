@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "auth-mcp": {
+      "command": "docker",
+      "args": [
+        "run",
+        "--rm",
+        "-i",
+        "--env-file",
+        "/path/to/your/.env",
+        "auth-mcp-stdio"
+      ]
+    }
+  }
+}
+

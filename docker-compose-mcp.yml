@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  auth-mcp-stdio:
+    build:
+      context: .
+      dockerfile: Dockerfile.mcp
+    container_name: auth-mcp-stdio
+    environment:
+      - AUTH_API_BASE_URL=${AUTH_API_BASE_URL:-https://your-auth-api.example.com}
+      - SWAGGER_URL=${SWAGGER_URL:-https://your-auth-api.example.com/api-json}
+      - NODE_ENV=production
+    env_file:
+      - .env
+    stdin_open: true
+    tty: false
+    restart: unless-stopped
+    networks:
+      - mcp-network
+
+networks:
+  mcp-network:
+    driver: bridge
+

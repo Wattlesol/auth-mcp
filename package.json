@@ -1,0 +1,32 @@
+{
+  "name": "auth-mcp",
+  "version": "1.0.0",
+  "description": "Fast, low-latency MCP server for authentication services",
+  "main": "auth-mcp",
+  "scripts": {
+    "start": "node auth-mcp",
+    "test": "jest",
+    "test:mcp": "./test-mcp-stdio.sh"
+  },
+  "bin": {
+    "auth-mcp": "./auth-mcp"
+  },
+  "keywords": [
+    "mcp",
+    "authentication",
+    "auth",
+    "model-context-protocol",
+    "ai-agent",
+    "lm-studio",
+    "claude-desktop"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.6.0",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
+}

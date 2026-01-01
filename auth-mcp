@@ -1,0 +1,10 @@
+#!/usr/bin/env node
+
+/**
+ * Auth MCP Server Launcher
+ * Simple entry point for the MCP server
+ */
+
+require('dotenv').config();
+require('./src/mcp-stdio-server.js');
+
