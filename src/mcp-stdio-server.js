@@ -7,11 +7,17 @@
  */
 
 const readline = require('readline');
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
 const AuthAPIClient = require('./api-client');
 const SwaggerToolsAnalyzer = require('./swagger-tools-analyzer');
 
 // Initialize auth API client
 const authClient = new AuthAPIClient();
+
+// Token storage file path (in temp directory for persistence across calls)
+const TOKEN_FILE = path.join(os.tmpdir(), '.auth-mcp-token.json');
 
 class StdioMCPServer {
   constructor() {
@@ -32,6 +38,9 @@ class StdioMCPServer {
       process.env.SWAGGER_URL || 'https://backstage.orcayo.wattlesol.digital/api-json'
     );
 
+    // Load persisted token from file
+    this.loadPersistedToken();
+
     // Load tools
     this.loadTools();
   }
@@ -46,6 +55,63 @@ class StdioMCPServer {
       this.logError(`Failed to load tools: ${error.message}`);
       this.tools = this.getDefaultTools();
       this.initialized = true;
+    }
+  }
+
+  // Load persisted token from file
+  loadPersistedToken() {
+    try {
+      if (fs.existsSync(TOKEN_FILE)) {
+        const data = fs.readFileSync(TOKEN_FILE, 'utf8');
+        const tokenData = JSON.parse(data);
+
+        // Check if token is expired
+        if (tokenData.tokenExpiry && Date.now() >= tokenData.tokenExpiry) {
+          this.logError(`[Token] Persisted token expired, clearing`);
+          this.clearPersistedToken();
+          return;
+        }
+
+        this.accessToken = tokenData.accessToken;
+        this.tokenExpiry = tokenData.tokenExpiry;
+
+        // Set token in API client
+        if (this.accessToken) {
+          authClient.setAuthToken(this.accessToken);
+          const expiresIn = this.tokenExpiry ? Math.floor((this.tokenExpiry - Date.now()) / 1000) : 'unknown';
+          this.logError(`[Token] Loaded persisted token (expires in ${expiresIn}s)`);
+        }
+      }
+    } catch (error) {
+      this.logError(`[Token] Failed to load persisted token: ${error.message}`);
+      this.clearPersistedToken();
+    }
+  }
+
+  // Save token to file for persistence across calls
+  savePersistedToken() {
+    try {
+      const tokenData = {
+        accessToken: this.accessToken,
+        tokenExpiry: this.tokenExpiry,
+        savedAt: Date.now()
+      };
+      fs.writeFileSync(TOKEN_FILE, JSON.stringify(tokenData), 'utf8');
+      this.logError(`[Token] Token persisted to disk`);
+    } catch (error) {
+      this.logError(`[Token] Failed to persist token: ${error.message}`);
+    }
+  }
+
+  // Clear persisted token file
+  clearPersistedToken() {
+    try {
+      if (fs.existsSync(TOKEN_FILE)) {
+        fs.unlinkSync(TOKEN_FILE);
+        this.logError(`[Token] Persisted token file deleted`);
+      }
+    } catch (error) {
+      this.logError(`[Token] Failed to delete token file: ${error.message}`);
     }
   }
 
@@ -73,6 +139,9 @@ class StdioMCPServer {
         this.logError(`[Token] Token will expire in ${expiresIn} seconds`);
       }
 
+      // Persist token to disk for future calls
+      this.savePersistedToken();
+
       return true;
     }
 
@@ -84,6 +153,7 @@ class StdioMCPServer {
     this.accessToken = null;
     this.tokenExpiry = null;
     authClient.removeAuthToken();
+    this.clearPersistedToken();
     this.logError(`[Token] Access token cleared`);
   }
 
@@ -214,8 +284,21 @@ class StdioMCPServer {
       // Check if this is a signout endpoint
       const isSignoutEndpoint = name.includes('signout') || name.includes('logout') || path.includes('/auth/signout');
 
-      // For non-auth endpoints, check if we have a valid token
-      if (!isAuthEndpoint && !isSignoutEndpoint) {
+      // Check if this is a public endpoint (doesn't require authentication)
+      const isPublicEndpoint = name.includes('health') ||
+                               name.includes('signup') ||
+                               name.includes('register') ||
+                               name.includes('forgot') ||
+                               name.includes('otp_send') ||
+                               name.includes('otp_verify') ||
+                               name.includes('resend_otp') ||
+                               path.includes('/health') ||
+                               path.includes('/auth/signup') ||
+                               path.includes('/auth/forgot') ||
+                               path.includes('/auth/otp');
+
+      // For protected endpoints, check if we have a valid token
+      if (!isAuthEndpoint && !isSignoutEndpoint && !isPublicEndpoint) {
         const tokenStatus = this.getTokenStatus();
         if (!tokenStatus.authenticated) {
           throw new Error(`Authentication required: ${tokenStatus.message}. Please sign in first using post_api_auth_signin tool.`);
