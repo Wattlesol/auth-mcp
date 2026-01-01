@@ -1,0 +1,16 @@
+Please help me test the authentication system with automatic token management. 
+
+Use the auth-mcp tools to:
+
+1. Sign in with these credentials:
+   - Email: irfan@mailinator.com
+   - Password: Muh@mm@d9091
+
+2. After signing in successfully, get my user profile using the get_api_auth_me tool
+
+3. Show me both responses in a clear, formatted way
+
+The server should automatically store the authentication token after step 1 and use it for step 2 without me having to provide it again. This tests the new automatic token management feature.
+
+If there are any errors, please show me the exact error message so I can understand what went wrong.
+
