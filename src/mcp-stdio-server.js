@@ -131,7 +131,9 @@ class StdioMCPServer {
                   response.token ||
                   response.data?.accessToken ||
                   response.data?.access_token ||
-                  response.data?.token;
+                  response.data?.token ||
+                  response.data?.session?.access_token ||
+                  response.data?.session?.accessToken;
 
     if (token) {
       this.accessToken = token;
@@ -141,7 +143,12 @@ class StdioMCPServer {
       authClient.setAuthToken(token);
 
       // Extract expiry if available
-      const expiresIn = response.expiresIn || response.expires_in || response.data?.expiresIn;
+      const expiresIn = response.expiresIn ||
+                        response.expires_in ||
+                        response.data?.expiresIn ||
+                        response.data?.expires_in ||
+                        response.data?.session?.expires_in ||
+                        response.data?.session?.expiresIn;
       if (expiresIn) {
         this.tokenExpiry = Date.now() + (expiresIn * 1000);
         this.logError(`[Token] Token will expire in ${expiresIn} seconds`);
