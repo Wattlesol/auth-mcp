@@ -132,40 +132,22 @@ class StdioMCPServer {
     const { name, arguments: args } = request.params;
 
     try {
-      let result;
-
-      // Route to appropriate handler based on tool name
-      switch (name) {
-        case 'authenticate_user':
-          result = await authClient.authenticate({
-            email: args.email || args.username,
-            password: args.password
-          });
-          break;
-
-        case 'validate_token':
-          result = await authClient.validateToken(args.token);
-          break;
-
-        case 'register_user':
-          result = await authClient.registerUser(args);
-          break;
-
-        case 'logout_user':
-          result = await authClient.logout(args.token);
-          break;
-
-        case 'check_permission':
-          result = await authClient.checkPermission(args.token, args.permission);
-          break;
-
-        case 'get_user_roles':
-          result = await authClient.getUserRoles(args.token);
-          break;
-
-        default:
-          throw new Error(`Unknown tool: ${name}`);
+      // Wait for tools to be loaded
+      while (!this.initialized) {
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
+
+      // Find the tool metadata
+      const tool = this.tools.find(t => t.function && t.function.name === name);
+
+      if (!tool || !tool.metadata) {
+        throw new Error(`Unknown tool: ${name}`);
+      }
+
+      const { path, method } = tool.metadata;
+
+      // Make the API call using the swagger client
+      const result = await authClient.makeApiCall(method, path, args);
 
       return {
         jsonrpc: '2.0',

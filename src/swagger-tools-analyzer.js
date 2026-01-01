@@ -61,19 +61,25 @@ class SwaggerToolsAnalyzer {
   createToolFromOperation(path, method, operation, components = {}) {
     // Create function name from path and method
     let functionName = this.pathToFunctionName(path, method);
-    
+
     // Clean up the function name to be a valid JavaScript identifier
     functionName = functionName.replace(/[^a-zA-Z0-9_]/g, '_').replace(/^(\d)/, '_$1');
-    
+
     // Get parameters schema from operation
     const parametersSchema = this.extractParametersSchema(operation, components);
-    
+
     return {
       type: "function",
       function: {
         name: functionName,
         description: operation.summary || operation.description || `Call ${method.toUpperCase()} on ${path}`,
         parameters: parametersSchema
+      },
+      // Store metadata for API calls
+      metadata: {
+        path: path,
+        method: method.toUpperCase(),
+        operationId: operation.operationId
       }
     };
   }

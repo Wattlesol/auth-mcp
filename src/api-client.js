@@ -97,6 +97,65 @@ class AuthAPIClient {
     }
   }
 
+  // Generic API call method for dynamic tool execution
+  async makeApiCall(method, path, params = {}) {
+    try {
+      // Extract token from params if present
+      const token = params.token || params.authorization;
+      if (token) {
+        this.setAuthToken(token);
+      }
+
+      let response;
+      const httpMethod = method.toLowerCase();
+
+      // Separate path params, query params, and body params
+      const { token: _, authorization: __, ...bodyParams } = params;
+
+      // Replace path parameters (e.g., /users/{id} -> /users/123)
+      let finalPath = path;
+      const pathParamMatches = path.match(/\{([^}]+)\}/g);
+      if (pathParamMatches) {
+        pathParamMatches.forEach(match => {
+          const paramName = match.slice(1, -1); // Remove { }
+          if (bodyParams[paramName]) {
+            finalPath = finalPath.replace(match, bodyParams[paramName]);
+            delete bodyParams[paramName];
+          }
+        });
+      }
+
+      // Make the API call based on HTTP method
+      switch (httpMethod) {
+        case 'get':
+          response = await this.client.get(finalPath, { params: bodyParams });
+          break;
+        case 'post':
+          response = await this.client.post(finalPath, bodyParams);
+          break;
+        case 'put':
+          response = await this.client.put(finalPath, bodyParams);
+          break;
+        case 'patch':
+          response = await this.client.patch(finalPath, bodyParams);
+          break;
+        case 'delete':
+          response = await this.client.delete(finalPath, { data: bodyParams });
+          break;
+        default:
+          throw new Error(`Unsupported HTTP method: ${method}`);
+      }
+
+      return response.data;
+    } catch (error) {
+      throw this.handleError(error);
+    } finally {
+      if (params.token || params.authorization) {
+        this.removeAuthToken();
+      }
+    }
+  }
+
   handleError(error) {
     if (error.response) {
       // Server responded with error status
